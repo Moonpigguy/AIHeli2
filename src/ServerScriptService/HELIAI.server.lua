@@ -22,8 +22,10 @@ local tiltMultiplier = 3
 local maxPitch = -40 -- degrees
 local maxRoll = -10 -- degrees
 local velocityLimit = 1000 -- m/s
+local velocityDistance = 80
 local maxDistance = 400
 local slowDownHeight = 20
+local hoverDistance = 70
 
 local lastMagnitude = 0
 local mass = 49832
@@ -96,60 +98,11 @@ local function flyToCFrame(cframe)
     end
     -- set the BodyGyro
     
-
-    heliTorque.CFrame = CFrame.new(engineCFrame.Position, Vector3.new(cframe.Position.X, engineCFrame.Position.Y, cframe.Position.Z)) * CFrame.Angles(math.rad(desiredPitch), 0, math.rad(desiredRoll))
-    --heliTorque.CFrame = CFrame.new(engineCFrame.Position, Vector3.new(cframe.Position.X, engineCFrame.Position.Y, cframe.Position.Z)) * CFrame.Angles(math.rad(desiredPitch), 0, 0)
-
-
-
-    --heliTorque.CFrame = CFrame.Angles(math.rad(desiredPitch), 0, 0)
-
-
-    --heliTorque.AngularVelocity = Vector3.new(pitch, yaw, roll)
-
-
-
-
-    
-    --pitch = math.clamp(pitch, -math.rad(maxPitch), math.rad(maxPitch))
-
-    -- set pitch based on angular velocity
-
-    -- set yaw, pitch, roll
-    --heliTorque.AngularVelocity = Vector3.new(pitch, yaw, roll)
-
-
-
-    
-
-
-
-
-
-
-
-
-
-    
-
-
-    
-
-
-
-
-    -- apply yaw, pitch, and roll
-    --heliTorque.AngularVelocity = Vector3.new(rollPitch.X * maxPitch, yaw, rollPitch.Z * maxRoll)
-    
-    lastMagnitude = (cframe.Position - engine.Position).Magnitude
-
-
-    --heliTorque.AngularVelocity = Vector3.new(rollPitch.X, yaw, rollPitch.Z)
-    
-    -- set torque
-    --heliTorque.AngularVelocity = Vector3.new(0, yaw, -0)
-    --heliTorque.AngularVelocity = Vector3.new(0, yaw, 0) * 0.5
-    --heliTorque.AngularVelocity = Vector3.new(0, yaw, 0)
+    if distance < hoverDistance then -- hover at cframe
+        heliTorque.CFrame = CFrame.new(engineCFrame.Position, engineCFrame.Position + Vector3.new(cframe.LookVector.X, 0, cframe.LookVector.Z)) * CFrame.Angles(0, 0, math.rad(desiredRoll))
+    else
+        heliTorque.CFrame = CFrame.new(engineCFrame.Position, Vector3.new(cframe.Position.X, engineCFrame.Position.Y, cframe.Position.Z)) * CFrame.Angles(math.rad(desiredPitch), 0, math.rad(desiredRoll))
+    end
 
     -- get distance between current position and cframe
     local distance = (engine.Position - cframe.p).magnitude
@@ -164,16 +117,19 @@ local function flyToCFrame(cframe)
         throttleStrength = heliForce.Force.Y - mass * gravity
     end
     -- calculate throttleStrength needed to hover at cframe
-
-    if distance < 10000 then
-        
+    -- if heli is close enough to target and velocity is below velocityLimit, lerp velocity to 0 and cframe to cframe
+    if distance < hoverDistance and velocityMagnitude < velocityDistance then
+        if distance > 5 then
+            engine.CFrame = engine.CFrame:Lerp(cframe, 0.02)
+        end
     end
+    print(engine.Velocity)
     
 end
 
 
 local function spinRotor()
-    local rotor = engine.Parent.VentsMain.Rotor -- this is a motor6d
+    local rotor = engine.Parent.VentsMain.Rotor
     local rotorSpeed = 0.5
     local Y,X,Z = rotor.C1:ToEulerAnglesYXZ()
     rotor.C1 = CFrame.Angles(Y, X + rotorSpeed, Z)
